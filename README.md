@@ -18,17 +18,18 @@ Beta releases use the same installer with `--channel beta`.
 ## Local Smoke
 
 ```sh
-cargo run --locked -p tauri-dev-cli -- doctor --config examples/minimal.toml
-cargo run --locked -p tauri-dev-cli -- inspect config --config examples/minimal.toml
+cargo run --locked -p cli -- doctor --config examples/minimal.toml
+cargo run --locked -p cli -- inspect config --config examples/minimal.toml
 ```
 
 ## Boundary
 
-- `tauri-dev-core` owns config, state, diagnostics, and plan primitives.
-- `tauri-dev-cli` owns the installed command surface.
+- `crates/core` owns config, state, diagnostics, socket, and plan primitives.
+- `crates/cli` owns the installed command surface.
 - Consumers own product-specific config and scripts.
+
+Socket endpoints use standard URI-shaped values. Unix platforms should publish runtime sockets as `unix:///absolute/path.sock`; `tcp://host:port` is reserved for non-Unix fallback or explicit compatibility probes.
 
 Report parser gaps, rule noise in diagnostics, install issues, and missing Tauri-dev capabilities at:
 
 https://github.com/PerishCode/tauri-dev/issues
-

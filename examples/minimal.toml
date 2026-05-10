@@ -14,11 +14,10 @@ name = "api"
 command = "cargo"
 args = ["run", "-p", "example-api"]
 cwd = "."
-socket = "127.0.0.1:3901"
+socket = "unix:///tmp/tauri-dev-example-api.sock"
 health_url = "http://127.0.0.1:3901/health"
 
 [[inspect.endpoints]]
 name = "api-health"
 kind = "http"
 url = "http://127.0.0.1:3901/health"
-

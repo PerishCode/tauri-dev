@@ -39,5 +39,4 @@ jobs:
         run: cargo test --locked --workspace
 
       - name: CLI smoke
-        run: cargo run --locked -p tauri-dev-cli -- doctor --config examples/minimal.toml
-
+        run: cargo run --locked -p cli -- doctor --config examples/minimal.toml

@@ -1,6 +1,7 @@
 use crate::config::TauriDevConfig;
 use crate::diagnostics::Diagnostic;
 use crate::plan::ExecutionPlan;
+use crate::socket::SocketEndpoint;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
@@ -70,6 +71,14 @@ impl DevState {
                     format!("{path}.name"),
                     format!("duplicate sidecar name `{}`", sidecar.name),
                 ));
+            }
+            if let Some(socket) = &sidecar.socket {
+                if let Err(error) = SocketEndpoint::parse(socket) {
+                    diagnostics.push(Diagnostic::error(
+                        format!("{path}.socket"),
+                        error.to_string(),
+                    ));
+                }
             }
         }
 

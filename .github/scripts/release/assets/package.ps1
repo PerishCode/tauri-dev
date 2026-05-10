@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))))
-$appDir = Join-Path $root 'crates/tauri-dev-cli'
+$appDir = Join-Path $root 'crates/cli'
 $name = 'tauri-dev'
 $cargoToml = Join-Path $appDir 'Cargo.toml'
 $version = (Select-String -Path $cargoToml -Pattern '^version = "(.+)"$').Matches[0].Groups[1].Value
@@ -12,7 +12,7 @@ $artifactDir = Join-Path $distDir $releaseVersion
 
 New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 $env:TAURI_DEV_BUILD_VERSION = $releaseVersion
-cargo build --release --locked -p tauri-dev-cli --target $target
+cargo build --release --locked -p cli --target $target
 
 $archive = "$name-$target.zip"
 $tmpdir = Join-Path ([System.IO.Path]::GetTempPath()) ("$name-" + [System.Guid]::NewGuid().ToString('N'))
@@ -27,4 +27,3 @@ try {
 finally {
     Remove-Item -LiteralPath $tmpdir -Recurse -Force -ErrorAction SilentlyContinue
 }
-

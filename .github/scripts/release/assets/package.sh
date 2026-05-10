@@ -2,7 +2,7 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../../../.." && pwd)
-APP_DIR="$ROOT/crates/tauri-dev-cli"
+APP_DIR="$ROOT/crates/cli"
 NAME=tauri-dev
 VERSION=$(sed -n 's/^version = "\(.*\)"$/\1/p' "$APP_DIR/Cargo.toml" | head -n 1)
 RELEASE_VERSION=${1:-${RELEASE_VERSION:-v$VERSION}}
@@ -13,10 +13,10 @@ ARTIFACT_DIR="$DIST_DIR/$RELEASE_VERSION"
 mkdir -p "$ARTIFACT_DIR"
 
 if [ -n "${TARGET:-}" ]; then
-  TAURI_DEV_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p tauri-dev-cli --target "$TARGET"
+  TAURI_DEV_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli --target "$TARGET"
   BIN="$ROOT/target/$TARGET/release/$NAME"
 else
-  TAURI_DEV_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p tauri-dev-cli
+  TAURI_DEV_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli
   BIN="$ROOT/target/release/$NAME"
 fi
 
@@ -30,4 +30,3 @@ archive="$NAME-$TARGET.tar.gz"
 tar -C "$tmpdir" -czf "$ARTIFACT_DIR/$archive" "$NAME"
 
 printf '%s\n' "$ARTIFACT_DIR/$archive"
-

@@ -1,9 +1,13 @@
 [package]
-name = "tauri-dev-cli"
+name = "cli"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[lib]
+name = "tauri_dev_cli"
+path = "src/lib.rs"
 
 [[bin]]
 name = "tauri-dev"
@@ -12,4 +16,3 @@ path = "src/main.rs"
 [dependencies]
 serde_json.workspace = true
 tauri-dev-core.workspace = true
-

@@ -27,7 +27,7 @@ def version_tuple(value: str) -> tuple[int, int, int]:
 
 
 def read_cargo_version() -> str:
-    cargo_toml = Path("crates/tauri-dev-cli/Cargo.toml")
+    cargo_toml = Path("crates/cli/Cargo.toml")
     match = re.search(r'^version = "([^"]+)"$', cargo_toml.read_text(encoding="utf-8"), re.M)
     if match is None:
         fail(f"missing version in {cargo_toml}")
@@ -141,4 +141,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

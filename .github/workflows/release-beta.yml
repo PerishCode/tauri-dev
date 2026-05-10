@@ -73,7 +73,7 @@ jobs:
         run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
       - name: CLI smoke
-        run: cargo run --locked -p tauri-dev-cli -- doctor --config examples/minimal.toml
+        run: cargo run --locked -p cli -- doctor --config examples/minimal.toml
 
   build:
     needs: [metadata, verify]
@@ -204,4 +204,3 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./.github/scripts/release/smoke/smoke.ps1 "${{ needs.metadata.outputs.release_version }}" beta
-

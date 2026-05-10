@@ -3,6 +3,22 @@
 version = 4
 
 [[package]]
+name = "cli"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "serde_json",
+]
+
+[[package]]
+name = "core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -115,22 +131,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "tauri-dev-cli"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "tauri-dev-core",
-]
-
-[[package]]
-name = "tauri-dev-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "toml",
 ]
 
 [[package]]
