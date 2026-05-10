@@ -1,7 +1,8 @@
 use crate::commands;
 use crate::output::{print_diagnostics, print_plan};
 use crate::update;
-use sidecar_core::{DevState, Severity};
+use sidecar_core::{resolve_data_paths, DataPaths, DevState, Severity};
+use std::path::Path;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum OutputFormat {
@@ -14,6 +15,9 @@ struct ParsedArgs {
     command: Vec<String>,
     config: Option<String>,
     format: OutputFormat,
+    data_home: Option<String>,
+    project_override: Option<String>,
+    reset_all: bool,
 }
 
 pub fn version() -> &'static str {
@@ -38,12 +42,29 @@ Commands:\n  \
   stop     --config <path> [<sidecar>]\n  \
   status   --config <path> [--format text|json]\n  \
   list     --config <path> [--format text|json]\n  \
-  reset    --config <path>\n  \
+  reset    --config <path> [--all]\n  \
   update\n  \
   help\n  \
   version\n\n\
-Config:\n  \
-  Use explicit --config <path>. No default config filename is reserved.\n\n\
+Global flags:\n  \
+  -p, --project <name>        override [project].namespace (== `docker compose -p`)\n  \
+      --data-home <path>      override the global data home root\n  \
+      --config <path>         explicit manifest path (no default reserved)\n  \
+      --format text|json      output format where applicable\n\n\
+Data home (where lifecycle state and update cache live):\n  \
+  Default: $XDG_DATA_HOME/sidecar (Unix) | %LOCALAPPDATA%\\sidecar (Windows).\n  \
+  Layout:  <data_home>/state/  and  <data_home>/projects/<namespace>/.\n  \
+  Override precedence: CLI --data-home > env SIDECAR_DATA_HOME > default.\n  \
+  Per-project override: manifest [project].data_dir replaces the projects/<ns> subdir.\n\n\
+Project scoping:\n  \
+  -p / --project / SIDECAR_PROJECT override [project].namespace at the CLI\n  \
+  level — same manifest can run as multiple isolated projects (separate stamp\n  \
+  namespace, separate data dir).\n\n\
+Reset (escape hatch):\n  \
+  `reset` kills all stamped processes in the namespace and removes\n  \
+  <data_home>/projects/<namespace>. Add --all to also wipe <data_home>/state.\n  \
+  Pair with installer `uninstall` + reinstall + re-author sidecar.toml per the\n  \
+  latest README to fully recover from any incompatible change.\n\n\
 Update:\n  \
   Released builds check the current channel at startup; a notice on stderr\n  \
   is the only side effect. `sidecar update` re-runs install.sh|ps1 against\n  \
@@ -61,6 +82,13 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
         print!("{help}", help = help_text());
         println!();
         return Ok(());
+    }
+
+    if let Some(home) = &parsed.data_home {
+        std::env::set_var("SIDECAR_DATA_HOME", home);
+    }
+    if let Some(project) = &parsed.project_override {
+        std::env::set_var("SIDECAR_PROJECT", project);
     }
 
     let cmd = parsed.command[0].as_str();
@@ -155,7 +183,8 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
         "reset" => {
             require_no_extra_args(&parsed, 1, "reset")?;
             let state = load_state(&parsed)?;
-            commands::reset(&state)
+            let paths = data_paths_for(&parsed, &state);
+            commands::reset(&state, &paths, parsed.reset_all)
         }
         _ => Err(format!(
             "unknown command: {}; run `sidecar help`",
@@ -194,13 +223,31 @@ fn load_state(parsed: &ParsedArgs) -> Result<DevState, String> {
         .config
         .as_ref()
         .ok_or_else(|| "--config <path> is required".to_string())?;
-    DevState::from_config_file(config).map_err(|error| error.to_string())
+    let mut state = DevState::from_config_file(config).map_err(|error| error.to_string())?;
+    let env_project = std::env::var("SIDECAR_PROJECT")
+        .ok()
+        .filter(|value| !value.is_empty());
+    if let Some(ns) = parsed.project_override.clone().or(env_project) {
+        state.config.project.namespace = ns;
+    }
+    Ok(state)
+}
+
+fn data_paths_for(parsed: &ParsedArgs, state: &DevState) -> DataPaths {
+    resolve_data_paths(
+        &state.config.project.namespace,
+        parsed.data_home.as_deref().map(Path::new),
+        state.config.project.data_dir.as_deref(),
+    )
 }
 
 fn parse(args: Vec<String>) -> Result<ParsedArgs, String> {
     let mut command = Vec::new();
     let mut config = None;
     let mut format = OutputFormat::Text;
+    let mut data_home = None;
+    let mut project_override = None;
+    let mut reset_all = false;
     let mut args = args.into_iter();
     let _binary = args.next();
 
@@ -218,11 +265,32 @@ fn parse(args: Vec<String>) -> Result<ParsedArgs, String> {
                     .ok_or_else(|| "--format requires a value".to_string())?;
                 format = parse_format(&value)?;
             }
+            "--data-home" => {
+                data_home = Some(
+                    args.next()
+                        .ok_or_else(|| "--data-home requires a value".to_string())?,
+                );
+            }
+            "-p" | "--project" => {
+                project_override = Some(
+                    args.next()
+                        .ok_or_else(|| "--project requires a value".to_string())?,
+                );
+            }
+            "--all" => {
+                reset_all = true;
+            }
             value if value.starts_with("--config=") => {
                 config = Some(value.trim_start_matches("--config=").to_string());
             }
             value if value.starts_with("--format=") => {
                 format = parse_format(value.trim_start_matches("--format="))?;
+            }
+            value if value.starts_with("--data-home=") => {
+                data_home = Some(value.trim_start_matches("--data-home=").to_string());
+            }
+            value if value.starts_with("--project=") => {
+                project_override = Some(value.trim_start_matches("--project=").to_string());
             }
             value
                 if value.starts_with('-')
@@ -238,6 +306,9 @@ fn parse(args: Vec<String>) -> Result<ParsedArgs, String> {
         command,
         config,
         format,
+        data_home,
+        project_override,
+        reset_all,
     })
 }
 
@@ -299,5 +370,44 @@ mod tests {
             vec!["inspect", "controller", "host", "{\"window\":\"main\"}"]
         );
         assert_eq!(parsed.config.as_deref(), Some("x.toml"));
+    }
+
+    #[test]
+    fn parses_project_short_and_long() {
+        let parsed_short = parse(vec![
+            "sidecar".into(),
+            "-p".into(),
+            "staging".into(),
+            "status".into(),
+            "--config=x.toml".into(),
+        ])
+        .unwrap();
+        assert_eq!(parsed_short.project_override.as_deref(), Some("staging"));
+
+        let parsed_long = parse(vec![
+            "sidecar".into(),
+            "--project=prod".into(),
+            "list".into(),
+            "--config".into(),
+            "x.toml".into(),
+        ])
+        .unwrap();
+        assert_eq!(parsed_long.project_override.as_deref(), Some("prod"));
+    }
+
+    #[test]
+    fn parses_data_home_and_reset_all() {
+        let parsed = parse(vec![
+            "sidecar".into(),
+            "--data-home".into(),
+            "/var/sidecar".into(),
+            "reset".into(),
+            "--all".into(),
+            "--config".into(),
+            "x.toml".into(),
+        ])
+        .unwrap();
+        assert_eq!(parsed.data_home.as_deref(), Some("/var/sidecar"));
+        assert!(parsed.reset_all);
     }
 }

@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use sidecar_core::resolve_data_home;
+
 const DEFAULT_TTL_SECS: u64 = 24 * 60 * 60;
 const FETCH_TIMEOUT_SECS: u64 = 3;
 const INSTALL_TIMEOUT_SECS: u64 = 30;
@@ -216,13 +218,7 @@ fn write_cache(path: &Path, channel: &str, checked_at: u64, latest: &str) -> std
 }
 
 fn cache_dir() -> Option<PathBuf> {
-    if cfg!(windows) {
-        return env::var_os("LOCALAPPDATA").map(|p| PathBuf::from(p).join("sidecar"));
-    }
-    if let Some(state) = env::var_os("XDG_STATE_HOME") {
-        return Some(PathBuf::from(state).join("sidecar"));
-    }
-    env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/state/sidecar"))
+    Some(resolve_data_home(None).join("state"))
 }
 
 fn curl_fetch(url: &str, timeout_secs: u64) -> Option<String> {

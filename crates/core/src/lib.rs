@@ -1,6 +1,7 @@
 pub mod config;
 pub mod diagnostics;
 pub mod inspect;
+pub mod paths;
 pub mod plan;
 pub mod process;
 pub mod socket;
@@ -12,6 +13,7 @@ pub use config::{
 };
 pub use diagnostics::{Diagnostic, Severity};
 pub use inspect::{send as inspect_send, InspectRequest, InspectResponse};
+pub use paths::{resolve_data_home, resolve_data_paths, DataPaths};
 pub use plan::{AppPlan, ExecutionPlan, InspectEndpointPlan, SidecarPlan};
 pub use process::{
     discover_by_app_namespace, discover_by_namespace, signal_terminate, StampedProcess,

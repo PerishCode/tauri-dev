@@ -18,6 +18,8 @@ pub struct ProjectConfig {
     pub namespace: String,
     #[serde(default = "default_root")]
     pub root: String,
+    #[serde(default)]
+    pub data_dir: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

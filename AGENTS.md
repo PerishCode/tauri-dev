@@ -43,7 +43,38 @@ The release workflows pass `RELEASE_CHANNEL` (`stable` for `release.yml`, `beta`
 - `SIDECAR_NO_UPDATE_CHECK=1` — skip the startup check entirely.
 - `SIDECAR_UPDATE_TTL=<n>[smhd]` — startup-check cache TTL; default `24h`, `0` = always fetch.
 
-Cache file: `${XDG_STATE_HOME:-$HOME/.local/state}/sidecar/update-<channel>.json` on Unix, `%LOCALAPPDATA%\sidecar\update-<channel>.json` on Windows. It is single-key (`{checked_at, channel, latest_version}`) and may be deleted at any time.
+The update cache lives at `<data_home>/state/update-<channel>.json` (see Data Home below). It is single-key (`{checked_at, channel, latest_version}`) and may be deleted at any time.
+
+## Data Home
+
+Sidecar's persistent runtime state has a single canonical root, the data home:
+
+- Default: `$XDG_DATA_HOME/sidecar` → `$HOME/.local/share/sidecar` on Unix, `%LOCALAPPDATA%\sidecar` on Windows.
+- Layout:
+  - `<data_home>/state/` — global, namespace-independent (currently: update cache).
+  - `<data_home>/projects/<namespace>/` — per-project isolation (logs, runtime artifacts; populated by future work).
+
+Override precedence (highest wins): `--data-home <path>` (CLI) > `SIDECAR_DATA_HOME` (env) > platform default. The manifest `[project].data_dir` field replaces the per-project subdir only (it does not move `state/`); `state/` always sits directly under `<data_home>`.
+
+## Project Scoping (`-p` / `--project`)
+
+The CLI accepts `-p <name>` / `--project <name>` (and `SIDECAR_PROJECT` env) as a Docker-Compose-style override of the manifest `[project].namespace`. It re-keys everything that's namespace-scoped in one shot:
+
+- The stamp protocol's `namespace` flag on every spawned sidecar.
+- `discover_by_namespace` / `discover_by_app_namespace` lookups.
+- The `<data_home>/projects/<namespace>/` subdir.
+
+Precedence: CLI flag > env > manifest. The manifest value becomes a default; CLI always wins. This is what makes the same manifest run as multiple isolated projects on one machine.
+
+## Reset Semantics (Escape Hatch)
+
+`sidecar reset --config <path>` is the single escape hatch from any incompatible-change failure mode. It:
+
+1. Terminates every stamped process in the current namespace.
+2. Removes `<data_home>/projects/<namespace>/` (manifest `data_dir` honored).
+3. With `--all`: also removes `<data_home>/state/` (wipes update cache, etc.).
+
+There is no `--keep-data` or confirm prompt by design — predictability and idempotency are reset's contract. The install root and bin link are out of scope for `reset` (they belong to `install.sh|ps1 uninstall`). The fully-recovered state is: `sidecar reset --all` → `install.sh|ps1 uninstall` → reinstall latest → re-author `sidecar.toml` per the latest README.
 
 ## Installer Verbs
 

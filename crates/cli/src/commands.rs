@@ -4,9 +4,11 @@
 use crate::cli::OutputFormat;
 use serde_json::Value;
 use sidecar_core::{
-    discover_by_app_namespace, discover_by_namespace, inspect_send, signal_terminate, DevState,
-    ExecutionPlan, InspectRequest, InspectResponse, SidecarPlan, SocketEndpoint, StampedProcess,
+    discover_by_app_namespace, discover_by_namespace, inspect_send, signal_terminate, DataPaths,
+    DevState, ExecutionPlan, InspectRequest, InspectResponse, SidecarPlan, SocketEndpoint,
+    StampedProcess,
 };
+use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -82,20 +84,44 @@ pub(crate) fn list(state: &DevState, format: OutputFormat) -> Result<(), String>
     print_list(&plan.namespace, &hits, format)
 }
 
-pub(crate) fn reset(state: &DevState) -> Result<(), String> {
+pub(crate) fn reset(state: &DevState, paths: &DataPaths, all: bool) -> Result<(), String> {
     let plan = state.execution_plan();
     let hits = discover_by_namespace(&plan.namespace)
         .map_err(|err| format!("discovery failed for namespace `{}`: {err}", plan.namespace))?;
     if hits.is_empty() {
         println!("namespace `{}` has no stamped processes", plan.namespace);
-        return Ok(());
+    } else {
+        for hit in &hits {
+            signal_terminate(hit.pid)
+                .map_err(|err| format!("failed to terminate pid {}: {err}", hit.pid))?;
+            println!("terminated pid={} cmd={}", hit.pid, hit.command);
+        }
     }
-    for hit in &hits {
-        signal_terminate(hit.pid)
-            .map_err(|err| format!("failed to terminate pid {}: {err}", hit.pid))?;
-        println!("terminated pid={} cmd={}", hit.pid, hit.command);
+    remove_dir_if_exists(&paths.project, "project data")?;
+    if all {
+        remove_dir_if_exists(&paths.state, "global state")?;
     }
     Ok(())
+}
+
+fn remove_dir_if_exists(path: &Path, label: &str) -> Result<(), String> {
+    match fs::metadata(path) {
+        Ok(meta) if meta.is_dir() => {
+            fs::remove_dir_all(path)
+                .map_err(|err| format!("failed to remove {label} dir {}: {err}", path.display()))?;
+            println!("removed {label} dir {}", path.display());
+            Ok(())
+        }
+        Ok(_) => Err(format!(
+            "{label} path exists but is not a directory: {}",
+            path.display()
+        )),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(format!(
+            "failed to inspect {label} dir {}: {err}",
+            path.display()
+        )),
+    }
 }
 
 pub(crate) fn inspect(
