@@ -82,11 +82,11 @@ def read_metadata_beta(metadata: dict[str, object]) -> tuple[str, int, str]:
 
 
 def next_beta(cargo_version: str) -> tuple[str, int, str, str]:
-    public_url = os.environ.get("TAURI_DEV_RELEASES_PUBLIC_URL", "").rstrip("/")
-    metadata_url = os.environ.get("TAURI_DEV_BETA_METADATA_URL")
+    public_url = os.environ.get("SIDECAR_RELEASES_PUBLIC_URL", "").rstrip("/")
+    metadata_url = os.environ.get("SIDECAR_BETA_METADATA_URL")
     if not metadata_url:
         if not public_url:
-            fail("TAURI_DEV_RELEASES_PUBLIC_URL is required")
+            fail("SIDECAR_RELEASES_PUBLIC_URL is required")
         metadata_url = f"{public_url}/beta/latest/metadata.json"
 
     print(f"[release-beta] metadata url: {metadata_url}")

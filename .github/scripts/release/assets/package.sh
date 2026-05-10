@@ -3,7 +3,7 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../../../.." && pwd)
 APP_DIR="$ROOT/crates/cli"
-NAME=tauri-dev
+NAME=sidecar
 VERSION=$(sed -n 's/^version = "\(.*\)"$/\1/p' "$APP_DIR/Cargo.toml" | head -n 1)
 RELEASE_VERSION=${1:-${RELEASE_VERSION:-v$VERSION}}
 TARGET=${TARGET:-$(rustc -Vv | sed -n 's/^host: //p')}
@@ -13,10 +13,10 @@ ARTIFACT_DIR="$DIST_DIR/$RELEASE_VERSION"
 mkdir -p "$ARTIFACT_DIR"
 
 if [ -n "${TARGET:-}" ]; then
-  TAURI_DEV_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli --target "$TARGET"
+  SIDECAR_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli --target "$TARGET"
   BIN="$ROOT/target/$TARGET/release/$NAME"
 else
-  TAURI_DEV_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli
+  SIDECAR_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli
   BIN="$ROOT/target/release/$NAME"
 fi
 

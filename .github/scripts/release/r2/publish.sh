@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for name in TAURI_DEV_RELEASES_S3_AK TAURI_DEV_RELEASES_S3_SK TAURI_DEV_RELEASES_S3_BUCKET TAURI_DEV_RELEASES_S3_URL TAURI_DEV_RELEASES_PUBLIC_URL RELEASE_CHANNEL RELEASE_VERSION RELEASE_ROOT GITHUB_OUTPUT GITHUB_REPOSITORY GITHUB_SHA GITHUB_RUN_ID GITHUB_RUN_ATTEMPT GITHUB_WORKFLOW; do
+for name in SIDECAR_RELEASES_S3_AK SIDECAR_RELEASES_S3_SK SIDECAR_RELEASES_S3_BUCKET SIDECAR_RELEASES_S3_URL SIDECAR_RELEASES_PUBLIC_URL RELEASE_CHANNEL RELEASE_VERSION RELEASE_ROOT GITHUB_OUTPUT GITHUB_REPOSITORY GITHUB_SHA GITHUB_RUN_ID GITHUB_RUN_ATTEMPT GITHUB_WORKFLOW; do
   if [ -z "${!name:-}" ]; then
     echo "$name is required" >&2
     exit 1
@@ -9,7 +9,7 @@ for name in TAURI_DEV_RELEASES_S3_AK TAURI_DEV_RELEASES_S3_SK TAURI_DEV_RELEASES
 done
 
 release_root="$RELEASE_ROOT"
-public_url="${TAURI_DEV_RELEASES_PUBLIC_URL%/}"
+public_url="${SIDECAR_RELEASES_PUBLIC_URL%/}"
 version_prefix="$RELEASE_CHANNEL/versions/$RELEASE_VERSION"
 latest_prefix="$RELEASE_CHANNEL/latest"
 metadata_path="$release_root/metadata.json"
@@ -23,12 +23,12 @@ upload() {
     echo "expected upload file not found: $file_path" >&2
     exit 1
   fi
-  AWS_ACCESS_KEY_ID="$TAURI_DEV_RELEASES_S3_AK" \
-  AWS_SECRET_ACCESS_KEY="$TAURI_DEV_RELEASES_S3_SK" \
+  AWS_ACCESS_KEY_ID="$SIDECAR_RELEASES_S3_AK" \
+  AWS_SECRET_ACCESS_KEY="$SIDECAR_RELEASES_S3_SK" \
   AWS_DEFAULT_REGION=auto \
   AWS_EC2_METADATA_DISABLED=true \
-  aws --endpoint-url "${TAURI_DEV_RELEASES_S3_URL%/}" s3api put-object \
-    --bucket "$TAURI_DEV_RELEASES_S3_BUCKET" \
+  aws --endpoint-url "${SIDECAR_RELEASES_S3_URL%/}" s3api put-object \
+    --bucket "$SIDECAR_RELEASES_S3_BUCKET" \
     --key "$object_key" \
     --body "$file_path" \
     --content-type "$content_type" \
@@ -48,16 +48,16 @@ artifact_content_type() {
   esac
 }
 
-for file_path in "$release_root"/tauri-dev-*.tar.gz "$release_root"/tauri-dev-*.zip "$release_root"/checksums.txt; do
+for file_path in "$release_root"/sidecar-*.tar.gz "$release_root"/sidecar-*.zip "$release_root"/checksums.txt; do
   [ -f "$file_path" ] || continue
   name="$(basename "$file_path")"
   upload "$file_path" "$version_prefix/$name" "$(artifact_content_type "$name")" "public, max-age=31536000, immutable"
 done
 
-upload "$GITHUB_WORKSPACE/scripts/manage/tauri-dev.sh" "$version_prefix/install.sh" "text/x-shellscript; charset=utf-8" "public, max-age=31536000, immutable"
-upload "$GITHUB_WORKSPACE/scripts/manage/tauri-dev.ps1" "$version_prefix/install.ps1" "text/plain; charset=utf-8" "public, max-age=31536000, immutable"
-upload "$GITHUB_WORKSPACE/scripts/manage/tauri-dev.sh" "$latest_prefix/install.sh" "text/x-shellscript; charset=utf-8" "public, max-age=60, must-revalidate"
-upload "$GITHUB_WORKSPACE/scripts/manage/tauri-dev.ps1" "$latest_prefix/install.ps1" "text/plain; charset=utf-8" "public, max-age=60, must-revalidate"
+upload "$GITHUB_WORKSPACE/scripts/manage/sidecar.sh" "$version_prefix/install.sh" "text/x-shellscript; charset=utf-8" "public, max-age=31536000, immutable"
+upload "$GITHUB_WORKSPACE/scripts/manage/sidecar.ps1" "$version_prefix/install.ps1" "text/plain; charset=utf-8" "public, max-age=31536000, immutable"
+upload "$GITHUB_WORKSPACE/scripts/manage/sidecar.sh" "$latest_prefix/install.sh" "text/x-shellscript; charset=utf-8" "public, max-age=60, must-revalidate"
+upload "$GITHUB_WORKSPACE/scripts/manage/sidecar.ps1" "$latest_prefix/install.ps1" "text/plain; charset=utf-8" "public, max-age=60, must-revalidate"
 
 PUBLIC_URL="$public_url" \
 VERSION_PREFIX="$version_prefix" \
@@ -111,10 +111,10 @@ metadata = {
         "windows": f"{public_url}/{latest_prefix}/install.ps1",
     },
     "artifacts": {
-        "linuxX64": artifact("tauri-dev-x86_64-unknown-linux-gnu.tar.gz", "application/gzip"),
-        "macArm64": artifact("tauri-dev-aarch64-apple-darwin.tar.gz", "application/gzip"),
-        "macX64": artifact("tauri-dev-x86_64-apple-darwin.tar.gz", "application/gzip"),
-        "winX64": artifact("tauri-dev-x86_64-pc-windows-msvc.zip", "application/zip"),
+        "linuxX64": artifact("sidecar-x86_64-unknown-linux-gnu.tar.gz", "application/gzip"),
+        "macArm64": artifact("sidecar-aarch64-apple-darwin.tar.gz", "application/gzip"),
+        "macX64": artifact("sidecar-x86_64-apple-darwin.tar.gz", "application/gzip"),
+        "winX64": artifact("sidecar-x86_64-pc-windows-msvc.zip", "application/zip"),
         "checksums": artifact("checksums.txt", "text/plain; charset=utf-8"),
     },
 }
@@ -145,4 +145,3 @@ upload "$metadata_path" "$latest_prefix/metadata.json" "application/json; charse
   echo "version_metadata_url=$public_url/$version_prefix/metadata.json"
   echo "version_prefix=$version_prefix"
 } >> "$GITHUB_OUTPUT"
-

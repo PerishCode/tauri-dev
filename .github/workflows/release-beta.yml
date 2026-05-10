@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: tauri-dev-release-beta
+  group: sidecar-release-beta
   cancel-in-progress: false
 
 jobs:
@@ -29,11 +29,11 @@ jobs:
       BETA_VERSION_OVERRIDE: ${{ inputs.version_override }}
       R2_ACCESS_PROBE_NAME: release-beta
       RELEASE_CHANNEL: beta
-      TAURI_DEV_RELEASES_PUBLIC_URL: ${{ vars.TAURI_DEV_RELEASES_PUBLIC_URL }}
-      TAURI_DEV_RELEASES_S3_AK: ${{ secrets.TAURI_DEV_RELEASES_S3_AK }}
-      TAURI_DEV_RELEASES_S3_BUCKET: ${{ secrets.TAURI_DEV_RELEASES_S3_BUCKET }}
-      TAURI_DEV_RELEASES_S3_SK: ${{ secrets.TAURI_DEV_RELEASES_S3_SK }}
-      TAURI_DEV_RELEASES_S3_URL: ${{ secrets.TAURI_DEV_RELEASES_S3_URL }}
+      SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
+      SIDECAR_RELEASES_S3_AK: ${{ secrets.SIDECAR_RELEASES_S3_AK }}
+      SIDECAR_RELEASES_S3_BUCKET: ${{ secrets.SIDECAR_RELEASES_S3_BUCKET }}
+      SIDECAR_RELEASES_S3_SK: ${{ secrets.SIDECAR_RELEASES_S3_SK }}
+      SIDECAR_RELEASES_S3_URL: ${{ secrets.SIDECAR_RELEASES_S3_URL }}
     outputs:
       base_version: ${{ steps.beta.outputs.base_version }}
       beta_number: ${{ steps.beta.outputs.beta_number }}
@@ -83,16 +83,16 @@ jobs:
         include:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            archive: tauri-dev-x86_64-unknown-linux-gnu.tar.gz
+            archive: sidecar-x86_64-unknown-linux-gnu.tar.gz
           - runner: macos-latest
             target: aarch64-apple-darwin
-            archive: tauri-dev-aarch64-apple-darwin.tar.gz
+            archive: sidecar-aarch64-apple-darwin.tar.gz
           - runner: macos-latest
             target: x86_64-apple-darwin
-            archive: tauri-dev-x86_64-apple-darwin.tar.gz
+            archive: sidecar-x86_64-apple-darwin.tar.gz
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
-            archive: tauri-dev-x86_64-pc-windows-msvc.zip
+            archive: sidecar-x86_64-pc-windows-msvc.zip
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
@@ -131,11 +131,11 @@ jobs:
       RELEASE_ROOT: dist/${{ needs.metadata.outputs.release_version }}
       RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
       STATE_SOURCE: ${{ needs.metadata.outputs.state_source }}
-      TAURI_DEV_RELEASES_PUBLIC_URL: ${{ vars.TAURI_DEV_RELEASES_PUBLIC_URL }}
-      TAURI_DEV_RELEASES_S3_AK: ${{ secrets.TAURI_DEV_RELEASES_S3_AK }}
-      TAURI_DEV_RELEASES_S3_BUCKET: ${{ secrets.TAURI_DEV_RELEASES_S3_BUCKET }}
-      TAURI_DEV_RELEASES_S3_SK: ${{ secrets.TAURI_DEV_RELEASES_S3_SK }}
-      TAURI_DEV_RELEASES_S3_URL: ${{ secrets.TAURI_DEV_RELEASES_S3_URL }}
+      SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
+      SIDECAR_RELEASES_S3_AK: ${{ secrets.SIDECAR_RELEASES_S3_AK }}
+      SIDECAR_RELEASES_S3_BUCKET: ${{ secrets.SIDECAR_RELEASES_S3_BUCKET }}
+      SIDECAR_RELEASES_S3_SK: ${{ secrets.SIDECAR_RELEASES_S3_SK }}
+      SIDECAR_RELEASES_S3_URL: ${{ secrets.SIDECAR_RELEASES_S3_URL }}
     outputs:
       metadata_url: ${{ steps.r2.outputs.metadata_url }}
       version_metadata_url: ${{ steps.r2.outputs.version_metadata_url }}
@@ -190,7 +190,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SMOKE_LATEST: "1"
-      TAURI_DEV_RELEASES_PUBLIC_URL: ${{ vars.TAURI_DEV_RELEASES_PUBLIC_URL }}
+      SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
     steps:
       - uses: actions/checkout@v6
         with:

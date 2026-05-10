@@ -6,13 +6,13 @@ license.workspace = true
 repository.workspace = true
 
 [lib]
-name = "tauri_dev_cli"
+name = "sidecar_cli"
 path = "src/lib.rs"
 
 [[bin]]
-name = "tauri-dev"
+name = "sidecar"
 path = "src/main.rs"
 
 [dependencies]
 serde_json.workspace = true
-tauri-dev-core.workspace = true
+sidecar-core.workspace = true

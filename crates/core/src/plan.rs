@@ -1,8 +1,11 @@
-use crate::config::{AppConfig, InspectEndpointConfig, SidecarConfig, TauriDevConfig};
+use crate::config::{AppConfig, InspectEndpointConfig, Manifest, ProjectConfig, SidecarConfig};
+use crate::stamp::{Stamp, DEFAULT_SOURCE};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExecutionPlan {
     pub project: String,
+    pub namespace: String,
+    pub root: String,
     pub app: Option<AppPlan>,
     pub sidecars: Vec<SidecarPlan>,
     pub inspect_endpoints: Vec<InspectEndpointPlan>,
@@ -23,7 +26,8 @@ pub struct SidecarPlan {
     pub command: String,
     pub args: Vec<String>,
     pub cwd: String,
-    pub socket: Option<String>,
+    pub stamp: Stamp,
+    pub inspect_socket: Option<String>,
     pub health_url: Option<String>,
 }
 
@@ -35,14 +39,16 @@ pub struct InspectEndpointPlan {
 }
 
 impl ExecutionPlan {
-    pub fn from_config(config: &TauriDevConfig) -> Self {
+    pub fn from_config(config: &Manifest) -> Self {
         Self {
             project: config.project.name.clone(),
+            namespace: config.project.namespace.clone(),
+            root: config.project.root.clone(),
             app: config.app.as_ref().map(AppPlan::from_config),
             sidecars: config
                 .sidecars
                 .iter()
-                .map(SidecarPlan::from_config)
+                .map(|sidecar| SidecarPlan::from_config(sidecar, &config.project))
                 .collect(),
             inspect_endpoints: config
                 .inspect
@@ -67,15 +73,29 @@ impl AppPlan {
 }
 
 impl SidecarPlan {
-    fn from_config(config: &SidecarConfig) -> Self {
+    fn from_config(config: &SidecarConfig, project: &ProjectConfig) -> Self {
+        let stamp = Stamp {
+            app: config.name.clone(),
+            namespace: project.namespace.clone(),
+            mode: config.mode.clone(),
+            source: DEFAULT_SOURCE.to_string(),
+        };
         Self {
             name: config.name.clone(),
             command: config.command.clone(),
             args: config.args.clone(),
             cwd: config.cwd.clone(),
-            socket: config.socket.clone(),
+            stamp,
+            inspect_socket: config.inspect_socket.clone(),
             health_url: config.health_url.clone(),
         }
+    }
+
+    /// Final argv to spawn (sidecar args followed by stamp args).
+    pub fn spawn_args(&self) -> Vec<String> {
+        let mut argv = self.args.clone();
+        argv.extend(self.stamp.args());
+        argv
     }
 }
 

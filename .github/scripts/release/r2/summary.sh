@@ -2,7 +2,7 @@
 set -euo pipefail
 
 {
-  echo "## tauri-dev release"
+  echo "## sidecar release"
   echo
   echo "- metadata: ${R2_METADATA_URL:-}"
   echo "- version metadata: ${R2_VERSION_METADATA_URL:-}"

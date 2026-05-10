@@ -91,12 +91,12 @@ mod tests {
 
     #[test]
     fn parses_unix_endpoint() {
-        let endpoint = SocketEndpoint::parse("unix:///tmp/tauri-dev.sock").unwrap();
+        let endpoint = SocketEndpoint::parse("unix:///tmp/sidecar.sock").unwrap();
         assert_eq!(
             endpoint,
-            SocketEndpoint::Unix(PathBuf::from("/tmp/tauri-dev.sock"))
+            SocketEndpoint::Unix(PathBuf::from("/tmp/sidecar.sock"))
         );
-        assert_eq!(endpoint.as_endpoint(), "unix:///tmp/tauri-dev.sock");
+        assert_eq!(endpoint.as_endpoint(), "unix:///tmp/sidecar.sock");
     }
 
     #[test]

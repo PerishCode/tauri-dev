@@ -1,5 +1,5 @@
 use crate::cli::OutputFormat;
-use tauri_dev_core::{Diagnostic, ExecutionPlan, Severity};
+use sidecar_core::{Diagnostic, ExecutionPlan, Severity};
 
 pub(crate) fn print_diagnostics(
     diagnostics: &[Diagnostic],
@@ -8,11 +8,11 @@ pub(crate) fn print_diagnostics(
     match format {
         OutputFormat::Text => {
             if diagnostics.is_empty() {
-                println!("tauri-dev doctor found no issues");
+                println!("sidecar doctor found no issues");
                 return Ok(());
             }
 
-            println!("tauri-dev doctor found {} issue(s)", diagnostics.len());
+            println!("sidecar doctor found {} issue(s)", diagnostics.len());
             for diagnostic in diagnostics {
                 let severity = match diagnostic.severity {
                     Severity::Error => "error",
@@ -50,7 +50,7 @@ pub(crate) fn print_diagnostics(
 pub(crate) fn print_plan(plan: &ExecutionPlan, format: OutputFormat) -> Result<(), String> {
     match format {
         OutputFormat::Text => {
-            println!("project: {}", plan.project);
+            println!("project: {} (namespace: {})", plan.project, plan.namespace);
             match &plan.app {
                 Some(app) => println!(
                     "app: {} -> {}",
@@ -62,10 +62,14 @@ pub(crate) fn print_plan(plan: &ExecutionPlan, format: OutputFormat) -> Result<(
             println!("sidecars: {}", plan.sidecars.len());
             for sidecar in &plan.sidecars {
                 println!(
-                    "- {} -> {}",
+                    "- {} [mode={}] -> {}",
                     sidecar.name,
-                    command_line(&sidecar.command, &sidecar.args)
+                    sidecar.stamp.mode,
+                    command_line(&sidecar.command, &sidecar.spawn_args())
                 );
+                if let Some(socket) = &sidecar.inspect_socket {
+                    println!("    inspect_socket: {socket}");
+                }
             }
             println!("inspect endpoints: {}", plan.inspect_endpoints.len());
             for endpoint in &plan.inspect_endpoints {
@@ -76,6 +80,8 @@ pub(crate) fn print_plan(plan: &ExecutionPlan, format: OutputFormat) -> Result<(
         OutputFormat::Json => {
             let value = serde_json::json!({
                 "project": plan.project,
+                "namespace": plan.namespace,
+                "root": plan.root,
                 "app": plan.app.as_ref().map(|app| serde_json::json!({
                     "name": app.name,
                     "command": app.command,
@@ -88,7 +94,14 @@ pub(crate) fn print_plan(plan: &ExecutionPlan, format: OutputFormat) -> Result<(
                     "command": sidecar.command,
                     "args": sidecar.args,
                     "cwd": sidecar.cwd,
-                    "socket": sidecar.socket,
+                    "stamp": {
+                        "app": sidecar.stamp.app,
+                        "namespace": sidecar.stamp.namespace,
+                        "mode": sidecar.stamp.mode,
+                        "source": sidecar.stamp.source,
+                    },
+                    "spawnArgs": sidecar.spawn_args(),
+                    "inspectSocket": sidecar.inspect_socket,
                     "healthUrl": sidecar.health_url,
                 })).collect::<Vec<_>>(),
                 "inspectEndpoints": plan.inspect_endpoints.iter().map(|endpoint| serde_json::json!({

@@ -1,4 +1,5 @@
 mod cli;
+mod commands;
 mod output;
 
 pub use cli::{help_text, version};

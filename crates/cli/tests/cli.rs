@@ -2,10 +2,10 @@ use std::process::Command;
 
 #[test]
 fn doctor_accepts_minimal_config() {
-    let output = Command::new(env!("CARGO_BIN_EXE_tauri-dev"))
+    let output = Command::new(env!("CARGO_BIN_EXE_sidecar"))
         .args(["doctor", "--config", "../../examples/minimal.toml"])
         .output()
-        .expect("run tauri-dev doctor");
+        .expect("run sidecar doctor");
 
     assert!(
         output.status.success(),
@@ -17,7 +17,7 @@ fn doctor_accepts_minimal_config() {
 
 #[test]
 fn plan_outputs_project() {
-    let output = Command::new(env!("CARGO_BIN_EXE_tauri-dev"))
+    let output = Command::new(env!("CARGO_BIN_EXE_sidecar"))
         .args([
             "plan",
             "--config",
@@ -25,9 +25,9 @@ fn plan_outputs_project() {
             "--format=json",
         ])
         .output()
-        .expect("run tauri-dev plan");
+        .expect("run sidecar plan");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\"project\": \"example-tauri-app\""));
+    assert!(stdout.contains("\"project\": \"example-sidecar-project\""));
 }

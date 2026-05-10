@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))))
 $appDir = Join-Path $root 'crates/cli'
-$name = 'tauri-dev'
+$name = 'sidecar'
 $cargoToml = Join-Path $appDir 'Cargo.toml'
 $version = (Select-String -Path $cargoToml -Pattern '^version = "(.+)"$').Matches[0].Groups[1].Value
 $releaseVersion = if ($args.Length -gt 0 -and -not [string]::IsNullOrWhiteSpace($args[0])) { $args[0] } elseif ($env:RELEASE_VERSION) { $env:RELEASE_VERSION } else { "v$version" }
@@ -11,7 +11,7 @@ $distDir = if ($env:DIST_DIR) { $env:DIST_DIR } else { Join-Path $root 'dist' }
 $artifactDir = Join-Path $distDir $releaseVersion
 
 New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
-$env:TAURI_DEV_BUILD_VERSION = $releaseVersion
+$env:SIDECAR_BUILD_VERSION = $releaseVersion
 cargo build --release --locked -p cli --target $target
 
 $archive = "$name-$target.zip"

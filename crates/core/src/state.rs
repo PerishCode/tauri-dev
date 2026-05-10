@@ -1,4 +1,4 @@
-use crate::config::TauriDevConfig;
+use crate::config::Manifest;
 use crate::diagnostics::Diagnostic;
 use crate::plan::ExecutionPlan;
 use crate::socket::SocketEndpoint;
@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Debug)]
 pub struct DevState {
     pub config_path: PathBuf,
-    pub config: TauriDevConfig,
+    pub config: Manifest,
 }
 
 #[derive(Debug)]
@@ -46,6 +46,11 @@ impl DevState {
     pub fn diagnostics(&self) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
         validate_required_name(&mut diagnostics, "project.name", &self.config.project.name);
+        validate_required_name(
+            &mut diagnostics,
+            "project.namespace",
+            &self.config.project.namespace,
+        );
 
         if let Some(app) = &self.config.app {
             validate_required_name(&mut diagnostics, "app.name", &app.name);
@@ -66,19 +71,25 @@ impl DevState {
                 format!("{path}.command"),
                 &sidecar.command,
             );
+            validate_required_name(&mut diagnostics, format!("{path}.mode"), &sidecar.mode);
             if !sidecar.name.trim().is_empty() && !sidecar_names.insert(sidecar.name.as_str()) {
                 diagnostics.push(Diagnostic::error(
                     format!("{path}.name"),
                     format!("duplicate sidecar name `{}`", sidecar.name),
                 ));
             }
-            if let Some(socket) = &sidecar.socket {
+            if let Some(socket) = &sidecar.inspect_socket {
                 if let Err(error) = SocketEndpoint::parse(socket) {
                     diagnostics.push(Diagnostic::error(
-                        format!("{path}.socket"),
+                        format!("{path}.inspect_socket"),
                         error.to_string(),
                     ));
                 }
+            } else {
+                diagnostics.push(Diagnostic::warning(
+                    format!("{path}.inspect_socket"),
+                    "no inspect_socket is set; `sidecar inspect` will fail for this sidecar",
+                ));
             }
         }
 
@@ -157,6 +168,28 @@ mod tests {
     }
 
     #[test]
+    fn warns_when_inspect_socket_missing() {
+        let state = DevState {
+            config_path: PathBuf::from("inline.toml"),
+            config: toml::from_str(
+                r#"
+                [project]
+                name = "app"
+
+                [[sidecars]]
+                name = "api"
+                command = "cargo"
+                "#,
+            )
+            .unwrap(),
+        };
+        let diagnostics = state.diagnostics();
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.path == "sidecars[0].inspect_socket"));
+    }
+
+    #[test]
     fn builds_execution_plan() {
         let state = DevState {
             config_path: PathBuf::from("inline.toml"),
@@ -181,6 +214,7 @@ mod tests {
 
         let plan = state.execution_plan();
         assert_eq!(plan.project, "app");
+        assert_eq!(plan.namespace, "default");
         assert_eq!(plan.app.unwrap().command, "pnpm");
         assert_eq!(plan.inspect_endpoints.len(), 1);
     }

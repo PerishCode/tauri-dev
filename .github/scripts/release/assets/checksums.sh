@@ -10,7 +10,7 @@ release_root=${2:-}
 
 (
   cd "$release_root"
-  for file in tauri-dev-*.tar.gz tauri-dev-*.zip; do
+  for file in sidecar-*.tar.gz sidecar-*.zip; do
     [ -f "$file" ] || continue
     shasum -a 256 "$file"
   done

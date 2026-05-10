@@ -1,16 +1,16 @@
-# tauri-dev
+# sidecar
 
-Tauri development orchestration CLI for app, sidecar, socket, inspect, and diagnostics loops.
+IPC-based sidecars project manager. Stamp args + inspect bridge over Unix sockets — a small, product-agnostic CLI for managing the lifecycle of multiple sidecar processes for one project.
 
-`tauri-dev` is intentionally product-agnostic. A consumer such as `stim.io` provides an explicit config file; the CLI turns that into validated development plans and, in later phases, lifecycle execution.
+`sidecar` is intentionally product-agnostic. A consumer (such as `stim.io`) provides an explicit config file; the CLI turns that into validated development plans, lifecycle execution, and an inspect IPC channel.
 
 ## Install
 
-Release installation is R2-backed. The public URL is intentionally not hardcoded in this scaffold.
+Release installation is R2-backed.
 
 ```sh
-curl -fsSL "$TAURI_DEV_RELEASES_PUBLIC_URL/stable/latest/install.sh" \
-  | sh -s -- install --channel stable --public-url "$TAURI_DEV_RELEASES_PUBLIC_URL"
+curl -fsSL "$SIDECAR_RELEASES_PUBLIC_URL/stable/latest/install.sh" \
+  | sh -s -- install --channel stable --public-url "$SIDECAR_RELEASES_PUBLIC_URL"
 ```
 
 Beta releases use the same installer with `--channel beta`.
@@ -19,17 +19,37 @@ Beta releases use the same installer with `--channel beta`.
 
 ```sh
 cargo run --locked -p cli -- doctor --config examples/minimal.toml
-cargo run --locked -p cli -- inspect config --config examples/minimal.toml
+cargo run --locked -p cli -- plan   --config examples/minimal.toml --format json
 ```
 
 ## Boundary
 
-- `crates/core` owns config, state, diagnostics, socket, and plan primitives.
-- `crates/cli` owns the installed command surface.
-- Consumers own product-specific config and scripts.
+- `crates/core` owns `Manifest` config, diagnostics, plan generation, socket parsing, stamp args protocol, process discovery, and the inspect IPC client.
+- `crates/cli` owns the installed `sidecar` command surface (lifecycle + inspect).
+- Consumers own product-specific manifest files and the actual inspect server implementations on their sidecars.
 
-Socket endpoints use standard URI-shaped values. Unix platforms should publish runtime sockets as `unix:///absolute/path.sock`; `tcp://host:port` is reserved for non-Unix fallback or explicit compatibility probes.
+## Stamp args protocol
 
-Report parser gaps, rule noise in diagnostics, install issues, and missing Tauri-dev capabilities at:
+A consumer that uses `sidecar` to manage a process must accept (and ignore) the canonical stamp args appended to its command line:
 
-https://github.com/PerishCode/tauri-dev/issues
+```
+--sidecar-stamp-app=<sidecar.name>
+--sidecar-stamp-namespace=<project.namespace>
+--sidecar-stamp-mode=<sidecar.mode>
+--sidecar-stamp-source=tool:sidecar
+```
+
+These let `sidecar` discover, status-check, and stop running sidecars cross-platform.
+
+## Inspect bridge
+
+`sidecar inspect <sidecar> <event> [<json-payload>]` connects to the sidecar's `inspect_socket` and exchanges one line of JSON:
+
+- request:  `{"event":"...","payload":<json>}\n`
+- response: `{"ok":true,"data":<json>}\n` or `{"ok":false,"error":"..."}\n`
+
+Unix sockets are the canonical transport (`unix:///absolute/path.sock`). TCP (`tcp://host:port`) is reserved for non-Unix fallback or explicit compatibility probes.
+
+Report parser gaps, diagnostics noise, install issues, and missing capabilities at:
+
+https://github.com/PerishCode/sidecar/issues

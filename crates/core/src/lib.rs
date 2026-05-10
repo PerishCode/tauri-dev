@@ -1,13 +1,24 @@
 pub mod config;
 pub mod diagnostics;
+pub mod inspect;
 pub mod plan;
+pub mod process;
 pub mod socket;
+pub mod stamp;
 pub mod state;
 
 pub use config::{
-    AppConfig, InspectConfig, InspectEndpointConfig, ProjectConfig, SidecarConfig, TauriDevConfig,
+    AppConfig, InspectConfig, InspectEndpointConfig, Manifest, ProjectConfig, SidecarConfig,
 };
 pub use diagnostics::{Diagnostic, Severity};
+pub use inspect::{send as inspect_send, InspectRequest, InspectResponse};
 pub use plan::{AppPlan, ExecutionPlan, InspectEndpointPlan, SidecarPlan};
+pub use process::{
+    discover_by_app_namespace, discover_by_namespace, signal_terminate, StampedProcess,
+};
 pub use socket::{SocketEndpoint, SocketEndpointParseError};
+pub use stamp::{
+    read_flag as read_stamp_flag, read_stamp, Stamp, DEFAULT_MODE, DEFAULT_NAMESPACE,
+    DEFAULT_SOURCE, STAMP_APP_FLAG, STAMP_MODE_FLAG, STAMP_NAMESPACE_FLAG, STAMP_SOURCE_FLAG,
+};
 pub use state::{DevState, LoadError};

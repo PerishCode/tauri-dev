@@ -4,11 +4,11 @@ set -eu
 COMMAND=${1:-install}
 [ $# -gt 0 ] && shift || true
 
-CHANNEL=${TAURI_DEV_CHANNEL:-stable}
-VERSION=${TAURI_DEV_VERSION:-}
-PUBLIC_URL=${TAURI_DEV_RELEASES_PUBLIC_URL:-}
-INSTALL_ROOT=${TAURI_DEV_INSTALL_ROOT:-"$HOME/.local/share/tauri-dev"}
-LOCAL_BIN_DIR=${TAURI_DEV_LOCAL_BIN_DIR:-"$HOME/.local/bin"}
+CHANNEL=${SIDECAR_CHANNEL:-stable}
+VERSION=${SIDECAR_VERSION:-}
+PUBLIC_URL=${SIDECAR_RELEASES_PUBLIC_URL:-}
+INSTALL_ROOT=${SIDECAR_INSTALL_ROOT:-"$HOME/.local/share/sidecar"}
+LOCAL_BIN_DIR=${SIDECAR_LOCAL_BIN_DIR:-"$HOME/.local/bin"}
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -59,19 +59,19 @@ while [ $# -gt 0 ]; do
       ;;
     -h|--help|help)
       cat <<'EOF'
-tauri-dev installer
+sidecar installer
 
 Usage:
-  tauri-dev.sh install [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
-  tauri-dev.sh upgrade [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
-  tauri-dev.sh uninstall
+  sidecar.sh install [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
+  sidecar.sh upgrade [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
+  sidecar.sh uninstall
 
 Environment:
-  TAURI_DEV_RELEASES_PUBLIC_URL
-  TAURI_DEV_CHANNEL
-  TAURI_DEV_VERSION
-  TAURI_DEV_INSTALL_ROOT
-  TAURI_DEV_LOCAL_BIN_DIR
+  SIDECAR_RELEASES_PUBLIC_URL
+  SIDECAR_CHANNEL
+  SIDECAR_VERSION
+  SIDECAR_INSTALL_ROOT
+  SIDECAR_LOCAL_BIN_DIR
 EOF
       exit 0
       ;;
@@ -84,7 +84,7 @@ done
 
 need_public_url() {
   [ -n "$PUBLIC_URL" ] || {
-    echo "TAURI_DEV_RELEASES_PUBLIC_URL or --public-url is required" >&2
+    echo "SIDECAR_RELEASES_PUBLIC_URL or --public-url is required" >&2
     exit 1
   }
   PUBLIC_URL=${PUBLIC_URL%/}
@@ -94,9 +94,9 @@ platform_archive() {
   os=$(uname -s)
   arch=$(uname -m)
   case "$os:$arch" in
-    Linux:x86_64|Linux:amd64) echo "tauri-dev-x86_64-unknown-linux-gnu.tar.gz" ;;
-    Darwin:arm64|Darwin:aarch64) echo "tauri-dev-aarch64-apple-darwin.tar.gz" ;;
-    Darwin:x86_64|Darwin:amd64) echo "tauri-dev-x86_64-apple-darwin.tar.gz" ;;
+    Linux:x86_64|Linux:amd64) echo "sidecar-x86_64-unknown-linux-gnu.tar.gz" ;;
+    Darwin:arm64|Darwin:aarch64) echo "sidecar-aarch64-apple-darwin.tar.gz" ;;
+    Darwin:x86_64|Darwin:amd64) echo "sidecar-x86_64-apple-darwin.tar.gz" ;;
     *) echo "unsupported platform: $os $arch" >&2; exit 1 ;;
   esac
 }
@@ -106,7 +106,7 @@ latest_version() {
   sed -n 's/.*"releaseVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$metadata" | head -n 1
 }
 
-install_tauri_dev() {
+install_sidecar() {
   need_public_url
   tmpdir=$(mktemp -d)
   trap 'rm -rf "$tmpdir"' EXIT INT TERM
@@ -114,7 +114,7 @@ install_tauri_dev() {
   if [ -z "$VERSION" ]; then
     curl -fsSL "$PUBLIC_URL/$CHANNEL/latest/metadata.json" -o "$tmpdir/metadata.json"
     VERSION=$(latest_version "$tmpdir/metadata.json")
-    [ -n "$VERSION" ] || { echo "failed to resolve latest tauri-dev version" >&2; exit 1; }
+    [ -n "$VERSION" ] || { echo "failed to resolve latest sidecar version" >&2; exit 1; }
   fi
 
   archive=$(platform_archive)
@@ -122,26 +122,25 @@ install_tauri_dev() {
   mkdir -p "$INSTALL_ROOT/$VERSION" "$LOCAL_BIN_DIR"
   curl -fsSL "$archive_url" -o "$tmpdir/$archive"
   tar -xzf "$tmpdir/$archive" -C "$INSTALL_ROOT/$VERSION"
-  chmod +x "$INSTALL_ROOT/$VERSION/tauri-dev"
+  chmod +x "$INSTALL_ROOT/$VERSION/sidecar"
 
-  link="$LOCAL_BIN_DIR/tauri-dev"
+  link="$LOCAL_BIN_DIR/sidecar"
   rm -f "$link"
-  ln -s "$INSTALL_ROOT/$VERSION/tauri-dev" "$link"
+  ln -s "$INSTALL_ROOT/$VERSION/sidecar" "$link"
   "$link" --version
-  printf 'installed tauri-dev to %s\n' "$link"
+  printf 'installed sidecar to %s\n' "$link"
 }
 
-uninstall_tauri_dev() {
-  rm -f "$LOCAL_BIN_DIR/tauri-dev"
-  printf 'removed %s\n' "$LOCAL_BIN_DIR/tauri-dev"
+uninstall_sidecar() {
+  rm -f "$LOCAL_BIN_DIR/sidecar"
+  printf 'removed %s\n' "$LOCAL_BIN_DIR/sidecar"
 }
 
 case "$COMMAND" in
-  install|upgrade) install_tauri_dev ;;
-  uninstall) uninstall_tauri_dev ;;
+  install|upgrade) install_sidecar ;;
+  uninstall) uninstall_sidecar ;;
   *)
     echo "unknown command: $COMMAND" >&2
     exit 1
     ;;
 esac
-

@@ -1,5 +1,6 @@
 [project]
-name = "example-tauri-app"
+name = "example-sidecar-project"
+namespace = "default"
 root = "."
 
 [app]
@@ -14,7 +15,8 @@ name = "api"
 command = "cargo"
 args = ["run", "-p", "example-api"]
 cwd = "."
-socket = "unix:///tmp/tauri-dev-example-api.sock"
+mode = "dev"
+inspect_socket = "unix:///tmp/sidecar-example-api.sock"
 health_url = "http://127.0.0.1:3901/health"
 
 [[inspect.endpoints]]

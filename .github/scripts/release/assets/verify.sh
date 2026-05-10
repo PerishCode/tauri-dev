@@ -10,10 +10,10 @@ release_root=${3:-}
 [ -n "$release_root" ] || { echo "release root is required" >&2; exit 1; }
 
 for name in \
-  tauri-dev-x86_64-unknown-linux-gnu.tar.gz \
-  tauri-dev-aarch64-apple-darwin.tar.gz \
-  tauri-dev-x86_64-apple-darwin.tar.gz \
-  tauri-dev-x86_64-pc-windows-msvc.zip \
+  sidecar-x86_64-unknown-linux-gnu.tar.gz \
+  sidecar-aarch64-apple-darwin.tar.gz \
+  sidecar-x86_64-apple-darwin.tar.gz \
+  sidecar-x86_64-pc-windows-msvc.zip \
   checksums.txt
 do
   [ -f "$release_root/$name" ] || {
