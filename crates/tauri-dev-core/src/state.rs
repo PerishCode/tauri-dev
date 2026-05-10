@@ -21,7 +21,7 @@ pub enum LoadError {
     },
     Parse {
         path: PathBuf,
-        source: toml::de::Error,
+        source: Box<toml::de::Error>,
     },
 }
 
@@ -34,7 +34,7 @@ impl DevState {
         })?;
         let config = toml::from_str(&text).map_err(|source| LoadError::Parse {
             path: path.clone(),
-            source,
+            source: Box::new(source),
         })?;
         Ok(Self {
             config_path: path,
