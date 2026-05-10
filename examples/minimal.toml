@@ -1,0 +1,24 @@
+[project]
+name = "example-tauri-app"
+root = "."
+
+[app]
+name = "desktop"
+command = "pnpm"
+args = ["tauri", "dev"]
+cwd = "."
+health_url = "http://127.0.0.1:1420"
+
+[[sidecars]]
+name = "api"
+command = "cargo"
+args = ["run", "-p", "example-api"]
+cwd = "."
+socket = "127.0.0.1:3901"
+health_url = "http://127.0.0.1:3901/health"
+
+[[inspect.endpoints]]
+name = "api-health"
+kind = "http"
+url = "http://127.0.0.1:3901/health"
+
