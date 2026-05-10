@@ -4,9 +4,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
-import urllib.error
-import urllib.request
+import tempfile
 from pathlib import Path
 
 
@@ -52,17 +52,56 @@ def output(name: str, value: str) -> None:
             handle.write(f"{name}={value}\n")
 
 
-def fetch_optional_text(url: str) -> str | None:
-    request = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
+def fetch_metadata_from_r2() -> str | None:
+    bucket = os.environ.get("SIDECAR_RELEASES_S3_BUCKET")
+    endpoint = os.environ.get("SIDECAR_RELEASES_S3_URL")
+    access_key = os.environ.get("SIDECAR_RELEASES_S3_AK")
+    secret_key = os.environ.get("SIDECAR_RELEASES_S3_SK")
+    for name, value in (
+        ("SIDECAR_RELEASES_S3_BUCKET", bucket),
+        ("SIDECAR_RELEASES_S3_URL", endpoint),
+        ("SIDECAR_RELEASES_S3_AK", access_key),
+        ("SIDECAR_RELEASES_S3_SK", secret_key),
+    ):
+        if not value:
+            fail(f"{name} is required")
+
+    env = {
+        **os.environ,
+        "AWS_ACCESS_KEY_ID": access_key,
+        "AWS_SECRET_ACCESS_KEY": secret_key,
+        "AWS_DEFAULT_REGION": "auto",
+        "AWS_EC2_METADATA_DISABLED": "true",
+    }
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
+        target = Path(handle.name)
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
-            return response.read().decode("utf-8")
-    except urllib.error.HTTPError as error:
-        if error.code in (403, 404):
+        result = subprocess.run(
+            [
+                "aws",
+                "--endpoint-url",
+                endpoint.rstrip("/"),
+                "s3api",
+                "get-object",
+                "--bucket",
+                bucket,
+                "--key",
+                "beta/latest/metadata.json",
+                "--no-cli-pager",
+                str(target),
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            return target.read_text(encoding="utf-8")
+        stderr = result.stderr.strip()
+        if "NoSuchKey" in stderr or "Not Found" in stderr or "404" in stderr:
             return None
-        fail(f"failed to fetch R2 beta metadata: HTTP {error.code}")
-    except urllib.error.URLError as error:
-        fail(f"failed to fetch R2 beta metadata: {error}")
+        fail(f"failed to read R2 beta metadata via s3api: {stderr}")
+    finally:
+        target.unlink(missing_ok=True)
 
 
 def read_metadata_beta(metadata: dict[str, object]) -> tuple[str, int, str]:
@@ -82,15 +121,8 @@ def read_metadata_beta(metadata: dict[str, object]) -> tuple[str, int, str]:
 
 
 def next_beta(cargo_version: str) -> tuple[str, int, str, str]:
-    public_url = os.environ.get("SIDECAR_RELEASES_PUBLIC_URL", "").rstrip("/")
-    metadata_url = os.environ.get("SIDECAR_BETA_METADATA_URL")
-    if not metadata_url:
-        if not public_url:
-            fail("SIDECAR_RELEASES_PUBLIC_URL is required")
-        metadata_url = f"{public_url}/beta/latest/metadata.json"
-
-    print(f"[release-beta] metadata url: {metadata_url}")
-    text = fetch_optional_text(metadata_url)
+    print("[release-beta] reading beta/latest/metadata.json from R2 via s3api")
+    text = fetch_metadata_from_r2()
     if text is None:
         print("[release-beta] R2 beta metadata not found; starting beta.1")
         return cargo_version, 1, f"v{cargo_version}-beta.1", "missing R2 beta metadata"
