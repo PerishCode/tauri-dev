@@ -63,7 +63,7 @@ sidecar installer
 
 Usage:
   sidecar.sh install [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
-  sidecar.sh upgrade [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
+  sidecar.sh update  [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
   sidecar.sh uninstall
 
 Environment:
@@ -137,7 +137,7 @@ uninstall_sidecar() {
 }
 
 case "$COMMAND" in
-  install|upgrade) install_sidecar ;;
+  install|update) install_sidecar ;;
   uninstall) uninstall_sidecar ;;
   *)
     echo "unknown command: $COMMAND" >&2

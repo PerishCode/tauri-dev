@@ -27,7 +27,7 @@ sidecar installer
 
 Usage:
   sidecar.ps1 install [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
-  sidecar.ps1 upgrade [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
+  sidecar.ps1 update  [--channel stable|beta] [--version vX.Y.Z] [--public-url <url>]
   sidecar.ps1 uninstall
 '@ | Write-Output
             exit 0
@@ -90,7 +90,7 @@ function Uninstall-Sidecar {
 
 switch ($command) {
     'install' { Install-Sidecar }
-    'upgrade' { Install-Sidecar }
+    'update' { Install-Sidecar }
     'uninstall' { Uninstall-Sidecar }
     default { throw "unknown command: $command" }
 }

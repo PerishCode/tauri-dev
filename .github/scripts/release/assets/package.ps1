@@ -12,6 +12,8 @@ $artifactDir = Join-Path $distDir $releaseVersion
 
 New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 $env:SIDECAR_BUILD_VERSION = $releaseVersion
+$env:SIDECAR_BUILD_CHANNEL = if ($env:RELEASE_CHANNEL) { $env:RELEASE_CHANNEL } else { 'dev' }
+$env:SIDECAR_BUILD_PUBLIC_URL = if ($env:SIDECAR_RELEASES_PUBLIC_URL) { $env:SIDECAR_RELEASES_PUBLIC_URL } else { '' }
 cargo build --release --locked -p cli --target $target
 
 $archive = "$name-$target.zip"

@@ -107,6 +107,8 @@ jobs:
         if: runner.os != 'Windows'
         env:
           TARGET: ${{ matrix.target }}
+          RELEASE_CHANNEL: beta
+          SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
         run: sh .github/scripts/release/assets/package.sh "${{ needs.metadata.outputs.release_version }}"
 
       - name: Package release artifact
@@ -114,6 +116,8 @@ jobs:
         shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
+          RELEASE_CHANNEL: beta
+          SIDECAR_RELEASES_PUBLIC_URL: ${{ vars.SIDECAR_RELEASES_PUBLIC_URL }}
         run: ./.github/scripts/release/assets/package.ps1 "${{ needs.metadata.outputs.release_version }}"
 
       - uses: actions/upload-artifact@v7

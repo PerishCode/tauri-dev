@@ -1,5 +1,6 @@
 use crate::commands;
 use crate::output::{print_diagnostics, print_plan};
+use crate::update;
 use sidecar_core::{DevState, Severity};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -19,6 +20,10 @@ pub fn version() -> &'static str {
     option_env!("SIDECAR_BUILD_VERSION").unwrap_or(concat!("v", env!("CARGO_PKG_VERSION")))
 }
 
+pub fn channel() -> &'static str {
+    option_env!("SIDECAR_BUILD_CHANNEL").unwrap_or("dev")
+}
+
 pub fn help_text() -> &'static str {
     "sidecar\n\n\
 IPC-based sidecars project manager. Stamp args + inspect bridge over Unix sockets.\n\
@@ -34,10 +39,17 @@ Commands:\n  \
   status   --config <path> [--format text|json]\n  \
   list     --config <path> [--format text|json]\n  \
   reset    --config <path>\n  \
+  update\n  \
   help\n  \
   version\n\n\
 Config:\n  \
   Use explicit --config <path>. No default config filename is reserved.\n\n\
+Update:\n  \
+  Released builds check the current channel at startup; a notice on stderr\n  \
+  is the only side effect. `sidecar update` re-runs install.sh|ps1 against\n  \
+  the latest release. Override URL/channel with SIDECAR_RELEASES_PUBLIC_URL\n  \
+  and SIDECAR_CHANNEL; skip the check with SIDECAR_NO_UPDATE_CHECK=1; tune\n  \
+  cache with SIDECAR_UPDATE_TTL=<n>[smhd] (0 = always).\n\n\
 Feedback:\n  \
   Report parser gaps, diagnostics noise, install issues, and missing capabilities at:\n  \
   https://github.com/PerishCode/sidecar/issues"
@@ -52,14 +64,24 @@ pub fn run(args: Vec<String>) -> Result<(), String> {
     }
 
     let cmd = parsed.command[0].as_str();
+    if !matches!(
+        cmd,
+        "help" | "--help" | "-h" | "version" | "--version" | "-V" | "update"
+    ) {
+        update::maybe_emit_check_notice(version(), channel());
+    }
     match cmd {
         "help" | "--help" | "-h" => {
             println!("{}", help_text());
             Ok(())
         }
         "version" | "--version" | "-V" => {
-            println!("sidecar {}", version());
+            println!("sidecar {} ({})", version(), channel());
             Ok(())
+        }
+        "update" => {
+            require_no_extra_args(&parsed, 1, "update")?;
+            update::run_update(channel())
         }
         "doctor" => {
             require_no_extra_args(&parsed, 1, "doctor")?;

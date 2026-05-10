@@ -12,11 +12,20 @@ ARTIFACT_DIR="$DIST_DIR/$RELEASE_VERSION"
 
 mkdir -p "$ARTIFACT_DIR"
 
+BUILD_CHANNEL=${RELEASE_CHANNEL:-dev}
+BUILD_PUBLIC_URL=${SIDECAR_RELEASES_PUBLIC_URL:-}
+
 if [ -n "${TARGET:-}" ]; then
-  SIDECAR_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli --target "$TARGET"
+  SIDECAR_BUILD_VERSION="$RELEASE_VERSION" \
+  SIDECAR_BUILD_CHANNEL="$BUILD_CHANNEL" \
+  SIDECAR_BUILD_PUBLIC_URL="$BUILD_PUBLIC_URL" \
+    cargo build --release --locked -p cli --target "$TARGET"
   BIN="$ROOT/target/$TARGET/release/$NAME"
 else
-  SIDECAR_BUILD_VERSION="$RELEASE_VERSION" cargo build --release --locked -p cli
+  SIDECAR_BUILD_VERSION="$RELEASE_VERSION" \
+  SIDECAR_BUILD_CHANNEL="$BUILD_CHANNEL" \
+  SIDECAR_BUILD_PUBLIC_URL="$BUILD_PUBLIC_URL" \
+    cargo build --release --locked -p cli
   BIN="$ROOT/target/release/$NAME"
 fi
 

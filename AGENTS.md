@@ -18,6 +18,37 @@ This repository is not a `stim.io` module. `stim.io` and other consumers install
 - Release assets are R2-backed. `SIDECAR_RELEASES_*` repo vars/secrets must be present before any release workflow can run.
 - Consumer validation must use installed release assets, not `cargo install --path`, once a release exists.
 
+## Update / Compatibility Policy
+
+- The CLI never carries compatibility shims. Renaming or reshaping `Manifest`, CLI flags, the inspect protocol, the stamp protocol, or the installer surface is a hard cutover — no aliases, no deprecation warnings, no best-effort parsing of older shapes.
+- No internal migrations: there is no `state v1 → v2` translator, no schema-version field, no auto-rewrite of user `sidecar.toml`. Older configs that no longer parse must hard-fail with an error pointing the user at the latest README.
+- The escape hatch on any breakage is fixed and must always work: `sidecar reset` (kill stamped processes) → `sidecar.sh|ps1 uninstall` → reinstall the latest release → re-author `sidecar.toml` per the latest README. This single path replaces every other compatibility guarantee.
+- Versioning is `0.Y.Z` indefinitely. A `Y` bump is breaking by default; pre-1.0 SemVer carries the unstable contract for us — we do not promote to `1.0.0`.
+- The update mechanism itself follows the same rule: the startup check is best-effort and silently swallows every failure mode (network, parse, clock, missing curl); `sidecar update` is a thin wrapper around the installer (`install.sh|ps1 update`) — it does not decompress, verify, or roll back.
+
+## Build-time Stamps
+
+`crates/cli` reads three optional build-time env vars via `option_env!` and bakes them into the binary; `.github/scripts/release/assets/package.{sh,ps1}` set all three from the release workflow:
+
+- `SIDECAR_BUILD_VERSION` → `cli::version()` (defaults to `v<CARGO_PKG_VERSION>` for dev builds).
+- `SIDECAR_BUILD_CHANNEL` → `cli::channel()` (`stable` / `beta` / `dev`; defaults to `dev`, which disables the startup check and `update` subcommand).
+- `SIDECAR_BUILD_PUBLIC_URL` → fallback for the update check / subcommand when the runtime env var is absent.
+
+The release workflows pass `RELEASE_CHANNEL` (`stable` for `release.yml`, `beta` for `release-beta.yml`) and the repo var `SIDECAR_RELEASES_PUBLIC_URL` into the build matrix steps so that every published binary is self-aware.
+
+## Runtime Update Env Vars
+
+- `SIDECAR_RELEASES_PUBLIC_URL` — overrides the build-time stamp for both check and update.
+- `SIDECAR_CHANNEL` — overrides the build-time channel (e.g. flip a stable build to watch beta).
+- `SIDECAR_NO_UPDATE_CHECK=1` — skip the startup check entirely.
+- `SIDECAR_UPDATE_TTL=<n>[smhd]` — startup-check cache TTL; default `24h`, `0` = always fetch.
+
+Cache file: `${XDG_STATE_HOME:-$HOME/.local/state}/sidecar/update-<channel>.json` on Unix, `%LOCALAPPDATA%\sidecar\update-<channel>.json` on Windows. It is single-key (`{checked_at, channel, latest_version}`) and may be deleted at any time.
+
+## Installer Verbs
+
+`scripts/manage/sidecar.{sh,ps1}` accept exactly: `install`, `update`, `uninstall`. There is no `upgrade` alias. The CLI's `sidecar update` subcommand downloads the canonical installer for the current channel and execs it with the `update` verb.
+
 ## Common Commands
 
 - Format: `cargo fmt --all --check`
