@@ -82,11 +82,15 @@ fn default_data_home() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
     use super::*;
+    #[cfg(unix)]
     use std::sync::Mutex;
 
+    #[cfg(unix)]
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
+    #[cfg(unix)]
     fn with_clean_env<F: FnOnce()>(test: F) {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
         let prev_data = env::var_os("SIDECAR_DATA_HOME");
