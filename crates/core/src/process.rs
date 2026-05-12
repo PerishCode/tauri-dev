@@ -3,6 +3,7 @@
 //! Unix uses `ps -axo pid=,command=`. Windows is not yet implemented.
 
 use crate::stamp::{read_flag, STAMP_APP_FLAG, STAMP_NAMESPACE_FLAG};
+#[cfg(unix)]
 use std::process::Command;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
